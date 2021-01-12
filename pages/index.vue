@@ -1,73 +1,117 @@
 <template>
-  <div class="container">
-    <div>
-      <Logo />
-      <h1 class="title">
-        its
-      </h1>
-      <div class="links">
-        <a
-          href="https://nuxtjs.org/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="button--green"
-        >
-          Documentation
-        </a>
-        <a
-          href="https://github.com/nuxt/nuxt.js"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="button--grey"
-        >
-          GitHub
-        </a>
+  <div>
+    <div v-if="items.length">
+      <img class="logo-img" src="/logo-img.png" alt="logo-img">
+
+      <div class="cards">
+        <PreviewCard
+          v-for="item in items"
+          :key="item.id"
+          :item="item"
+        />
       </div>
+
+    </div>
+
+    <div v-else class="title">
+      No data
+    </div>
+
+    <div ref="loading">
+      <Loading v-show="loading" />
     </div>
   </div>
 </template>
 
 <script>
-export default {}
+import PreviewCard from '~/components/PreviewCard'
+import Loading from '~/components/Loading'
+
+export default {
+  components: { Loading, PreviewCard },
+  async fetch() {
+    this.items = await this.fetchItems()
+  },
+
+  mounted() {
+    if (process.client) {
+      window.addEventListener('scroll', this.scrollEvent)
+
+      this.isEndPage() && this.scrollEvent()
+    }
+  },
+
+  destroyed() {
+    window.removeEventListener('scroll', this.scrollEvent)
+  },
+
+  data() {
+    return {
+      loading: false,
+      items: [],
+      info: null,
+    }
+  },
+
+  methods: {
+    isEndPage() {
+      const { top } = this.$refs?.loading?.getBoundingClientRect()
+      const { clientHeight } = document.documentElement
+
+      return top <= clientHeight && top >= 0
+    },
+
+    async scrollEvent() {
+      if (this.isEndPage() && !this.loading && this.info?.next) {
+        this.items.push(...await this.fetchItems())
+      }
+    },
+    async fetchItems() {
+      try {
+        this.loading = true
+
+        const response = await fetch(this.info?.next || 'https://rickandmortyapi.com/api/character')
+
+        const { info, results } = await response.json()
+
+        this.info = info
+
+        return results
+      } catch (e) {
+        console.log(e)
+      } finally {
+        this.loading = false
+      }
+    },
+  },
+
+}
 </script>
 
-<style>
-.container {
-  margin: 0 auto;
-  min-height: 100vh;
+<style scoped>
+.logo-img {
   display: flex;
   justify-content: center;
-  align-items: center;
-  text-align: center;
+  margin: 0 auto 10px;
+  width: 100%;
+  max-width: 350px;
 }
 
 .title {
-  font-family:
-    'Quicksand',
-    'Source Sans Pro',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
-  display: block;
-  font-weight: 300;
-  font-size: 100px;
-  color: #35495e;
-  letter-spacing: 1px;
+  text-align: center;
+  font-size: 36px;
+  margin-bottom: 15px;
 }
 
-.subtitle {
-  font-weight: 300;
-  font-size: 42px;
-  color: #526488;
-  word-spacing: 5px;
-  padding-bottom: 15px;
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-gap: 1em;
 }
 
-.links {
-  padding-top: 15px;
+@media (max-width: 480px) {
+  .cards {
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  }
 }
 </style>
