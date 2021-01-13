@@ -33,8 +33,9 @@ export default {
     await this.fetchItems()
   },
 
-  mounted() {
+  async mounted() {
     if (process.client) {
+      await this.$fetch()
       window.addEventListener('scroll', this.scrollEvent)
 
       this.isEndPage() && this.scrollEvent()
