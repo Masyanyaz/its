@@ -30,7 +30,7 @@ import Loading from '~/components/Loading'
 export default {
   components: { Loading, PreviewCard },
   async fetch() {
-    this.items = await this.fetchItems()
+    await this.fetchItems()
   },
 
   mounted() {
@@ -58,14 +58,18 @@ export default {
       const { top } = this.$refs?.loading?.getBoundingClientRect()
       const { clientHeight } = document.documentElement
 
-      return top <= clientHeight && top >= 0
+      const stock = 50
+
+      return top - stock <= clientHeight && top >= 0
     },
 
     async scrollEvent() {
       if (this.isEndPage() && !this.loading && this.info?.next) {
-        this.items.push(...await this.fetchItems())
+        await this.fetchItems()
+        this.isEndPage() && await this.scrollEvent()
       }
     },
+
     async fetchItems() {
       try {
         this.loading = true
@@ -75,8 +79,7 @@ export default {
         const { info, results } = await response.json()
 
         this.info = info
-
-        return results
+        this.items.push(...results)
       } catch (e) {
         console.log(e)
       } finally {
